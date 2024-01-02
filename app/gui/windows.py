@@ -14,11 +14,12 @@ import app.services.text as ast
 import app.models.key as akey
 import app.models.api as aapi
 
+import global_vars
 
-BASE_DIR = os.path.expanduser("~/Dev/Project/SubtitlePy/images/") 
-PEM_DIR = os.path.expanduser("~/Dev/Project/SubtitlePy/") 
+BASE_DIR = global_vars.root_path + "/images/"
+PEM_DIR = global_vars.root_path + "/" 
 
-modelBaseDIR = os.path.expanduser("~/Dev/Project/SubtitlePy/paddleocr/")
+modelBaseDIR = global_vars.root_path + "/paddleocr/"
 class Windows():
     def __init__(self, activateState):
         self.root = Tk(className="概")
@@ -319,6 +320,7 @@ class Windows():
             apiModel = aapi.ApiModel()
 
             apiResult = apiModel.activate(data)
+            print(apiResult)
 
             if apiResult['status'] == 1:
                 resultData = apiResult['data']
@@ -333,8 +335,8 @@ class Windows():
                         self.tryAgain()
                         return
 
-        except:
-            pass
+        except Exception as e:
+            print(e)
         tkinter.messagebox.showinfo("提示", "激活码异常，请联系商家")
    
     

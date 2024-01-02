@@ -1,5 +1,6 @@
 import requests
 import hashlib
+import global_vars
 
 class ApiModel():
    def __init__(self):
@@ -11,10 +12,10 @@ class ApiModel():
       return r.json()
    
    def activate(self, data):
-      return self.post("http://192.168.1.10:8099/v1/activate", data)
+      return self.post(global_vars.baseUrl + "v1/activate", data)
    
    def getStateAndMacAddress(self, data):
-      return self.post("http://192.168.1.10:8099/v1/record", data)
+      return self.post(global_vars.baseUrl + "v1/record", data)
    
    def md5Sign(self, data):
       if 'name' in data :

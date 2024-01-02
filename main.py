@@ -5,25 +5,27 @@ from app.models.api import ApiModel
 from app.models.mac import MacAddressModel
 import time
 # import psutil
-
-
+import global_vars
 
 if __name__ == '__main__':
     # print(psutil.cpu_count())
+
     rsaModel = RsaModel()
-    publicKey = rsaModel.publicKey('public_key.pem')
-    message = "1=7=" + time.strftime("%Y-%m-%d",time.gmtime())
-    print(message)
+    # publicKeyPath = global_vars.root_path + '/public_key.pem'
+    # publicKey = rsaModel.publicKey(publicKeyPath)
+    # message = "1=7=" + time.strftime("%Y-%m-%d",time.gmtime())
 
-    data = rsaModel.encrytedData(message, publicKey)
-    print(data)
 
+    # data = rsaModel.encrytedData(message, publicKey)
+    # print(data)
 
     akeyModel = Key()
     keyResult = akeyModel.readKey("key")
     if len(keyResult) == 0 :
         activateState=False
-    privateKey = rsaModel.privateKey('private_key.pem')
+
+    privateKeyPath = global_vars.root_path + '/private_key.pem'
+    privateKey = rsaModel.privateKey(privateKeyPath)
     keyData = rsaModel.decryptedData(keyResult, privateKey)
     
 
@@ -47,7 +49,7 @@ if __name__ == '__main__':
                 data = resultData['data']
                 macAddressModel = MacAddressModel()
                 macAddress = macAddressModel.getMacAddress()
-                
+
                 if data['state'] == 0 or data['mac_address'] != macAddress:
                     activateState = False
 

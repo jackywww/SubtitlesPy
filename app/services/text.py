@@ -8,9 +8,10 @@ import app.models.api as aapi
 
 import cv2
 import psutil
+import global_vars
 
-modelBaseDIR = os.path.expanduser("~/Dev/Project/SubtitlePy/paddleocr/")
-PEM_DIR = os.path.expanduser("~/Dev/Project/SubtitlePy/") 
+modelBaseDIR = global_vars.root_path + "/paddleocr/"
+PEM_DIR = global_vars.root_path + "/"
 
 line = 1
 qCount = Queue(maxsize=int(psutil.cpu_count()))

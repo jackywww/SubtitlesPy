@@ -1,6 +1,7 @@
 import string
 from tkinter import *
 from tkinter import ttk
+from tkinter import font
 import tkinter
 from tkinter.filedialog import *
 from PIL import ImageTk, Image
@@ -34,6 +35,7 @@ class Windows():
         self.endY = 100
         self.line = -1
         self.innerImage = -1
+        self.font = font.Font(family='Helvetica', size=7)
 
         self.start = self.startX, self.startY
 
@@ -361,7 +363,7 @@ class Windows():
 
         self.pNumP = PhotoImage(file=BASE_DIR + "pnum.png")
         
-        cpuNum.add(Label(image=self.pNumP))
+        cpuNum.add(Label(image=self.pNumP, font=self.font))
 
         self.cpuScale = tkinter.Scale(
                 from_ = 1,
@@ -372,6 +374,7 @@ class Windows():
                 length=20,
                 showvalue=True,
                 command=self.changeCpuNum,
+                font=self.font
         )
         
         self.cpuScale.set(self.cpuNum)
@@ -394,7 +397,8 @@ class Windows():
                 tickinterval= 0.1,
                 length=20,
                 showvalue=True,
-                command=self.changeSpeed
+                command=self.changeSpeed,
+                font=self.font
             )
         
         self.recScale.set(self.speed)

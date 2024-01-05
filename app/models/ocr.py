@@ -1,8 +1,11 @@
 from paddleocr import PaddleOCR
 import os
 
+import global_vars
 
-BASE_DIR = os.path.expanduser("~/Dev/Project/SubtitlePy/paddleocr/")
+BASE_DIR = global_vars.root_path + "/paddleocr/"
+
+
 
 class Ocr(PaddleOCR):
     def __init__(self, baseDir, useGpu, totalProcessNum ):
@@ -17,14 +20,3 @@ class Ocr(PaddleOCR):
             use_mp=True,
             total_process_num = totalProcessNum
         )
-
-
-def main():
-    BASE_DIR = os.path.expanduser("~/Dev/Project/SubtitlePy/paddleocr/")
-    ocr = Ocr(baseDir=BASE_DIR)
-    img_path = '/home/jacky/Pictures/Screenshots/123.png'
-    result = ocr.ocr(img_path, cls=True)
-    print(result)
-
-if __name__ == '__main__':
-    main()

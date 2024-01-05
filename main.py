@@ -3,7 +3,6 @@ from app.models.rsa import RsaModel
 from app.models.key import Key
 from app.models.api import ApiModel
 from app.models.mac import MacAddressModel
-import time
 # import psutil
 import global_vars
 

@@ -1,4 +1,3 @@
-import string
 from tkinter import *
 from tkinter import ttk
 from tkinter import font
@@ -7,7 +6,6 @@ from tkinter.filedialog import *
 from PIL import ImageTk, Image
 import cv2
 from functools import partial
-import os
 from app.models.ocr import Ocr
 import psutil
 import threading

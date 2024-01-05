@@ -1,6 +1,5 @@
 import rsa
 import base64
-import uuid
 
 class RsaModel():
     def __init__(self):

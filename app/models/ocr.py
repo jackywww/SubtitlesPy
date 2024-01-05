@@ -1,5 +1,4 @@
 from paddleocr import PaddleOCR
-import os
 
 import global_vars
 

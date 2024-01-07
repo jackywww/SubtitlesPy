@@ -250,3 +250,18 @@ binary_data = struct.pack('<I', i)  # 将整数转换为二进制数据，使用
 
 with open('output.bin', 'wb') as f:  # 以二进制模式打开文件进行写入
     f.write(binary_data)
+
+
+ pyinstaller 
+.\JobTest.py 
+--add-data="venv/Lib/site-packages/paddle/fluid/proto;paddle/fluid/proto" 
+--add-data="venv/Lib/site-packages/paddleocr/ppocr;ppocr" 
+--add-binary="venv/Lib/site-packages/paddle/libs;." 
+--hidden-import="framework_pb2" 
+--hidden-import="scipy.special.cython_special" 
+--hidden-import="skimage" 
+--hidden-import="skimage.feature._orb_descriptor_positions" 
+--hidden-import="skimage.filters.edges" 
+-p="D:/python/JobRunner/venv/Lib/site-packages/paddleocr;D:/python/JobRunner/venv/Lib/site-packages/paddle/libs" 
+-F
+

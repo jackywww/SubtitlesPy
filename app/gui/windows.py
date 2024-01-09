@@ -12,6 +12,7 @@ import threading
 import app.services.text as ast
 import app.models.key as akey
 import app.models.api as aapi
+import app.models.mac as amac
 
 import global_vars
 
@@ -20,7 +21,7 @@ PEM_DIR = global_vars.root_path + "/"
 
 modelBaseDIR = global_vars.root_path + "/paddleocr/"
 class Windows():
-    def __init__(self, activateState):
+    def __init__(self, activateState, message):
         self.root = Tk(className="概")
         self.activateState = activateState
         self.scalValue = 1
@@ -50,6 +51,7 @@ class Windows():
         self.threads = []
         self.useGpu = True
         self.currentFrameIndex = 1
+        self.message = message
          
         
         
@@ -271,7 +273,7 @@ class Windows():
             tCount.start()
             self.threads.append(tCount)
 
-            t = threading.Thread(target=ast.getText, args=(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, self.normalButton,))
+            t = threading.Thread(target=ast.getText, args=(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, self.normalButton,self.showSuccessInfo))
             t.start()
             self.threads.append(t)
         
@@ -320,7 +322,6 @@ class Windows():
             apiModel = aapi.ApiModel()
 
             apiResult = apiModel.activate(data)
-            print(apiResult)
 
             if apiResult['status'] == 1:
                 resultData = apiResult['data']
@@ -336,9 +337,11 @@ class Windows():
                         return
 
         except Exception as e:
-            print(e)
+            pass
         tkinter.messagebox.showinfo("提示", "激活码异常，请联系商家")
-   
+
+    def showSuccessInfo(self, path):
+        tkinter.messagebox.showinfo("提示", "srt 文件地址:" + path)
     
     def activateTrue(self):
         self.pic = PhotoImage(file=BASE_DIR + "open.png")
@@ -461,6 +464,23 @@ class Windows():
 
         
     def tryAgain(self):
+        macAddressModel = amac.MacAddressModel()
+        macAddress = macAddressModel.getMacAddress()
+        data = ast.signData({"mac_address":macAddress})
+
+        apiModel = aapi.ApiModel()
+
+        apiResult = apiModel.tryAgain(data)
+        if apiResult['status'] == 0:
+            tkinter.messagebox.showinfo("提示", "服务异常，请联系商家")
+            return
+        
+        if apiResult['status'] == 1:
+            resultData = apiResult['data']
+            if resultData == False:
+                tkinter.messagebox.showinfo("提示", "试用次数已经用完，请联系商家")
+                return
+            
         self.activate.grid_remove()
         self.activateTrue()
         
@@ -483,6 +503,8 @@ class Windows():
         # self.canvas.create_rectangle(10,10, 300, 100, width=5)
         # self.canvas.grid(row =1 , column = 2)
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
+        if self.message != "":
+            tkinter.messagebox.showinfo("提示", self.message)
         self.root.mainloop()
 
     

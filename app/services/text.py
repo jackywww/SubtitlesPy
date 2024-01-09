@@ -98,7 +98,7 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
 
         subtitleResultQueue.put(shareData)
 
-def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, callBack):  
+def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, callBack, callBackShowSuccessInfo):  
         threads = []
         global allProcess
         video = mmcv.VideoReader(videoPath)
@@ -108,6 +108,9 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
 
 
         stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
+        if int(cpuNum) > int(stepCounts):
+             global_vars.stepFrameCount = math.floor(frameCounts / int(cpuNum))
+             stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
         
         qData = []
         for i in range(stepCounts):
@@ -115,6 +118,8 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
 
 
         lock = Lock()
+        
+
         for index in range(stepCounts):
             _data = []
             t = Process(target=getSubText, args=(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo))
@@ -139,6 +144,7 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
             stepCounts += int(clipValue['count'])
 
         callBack()
+        callBackShowSuccessInfo(videoPath + ".srt")
         
         
 
@@ -183,7 +189,10 @@ def stopProcess():
    
 
 def terminateProcess():
-    stopProcess()
+    try:
+        stopProcess()
+    except:
+         pass
     os._exit(0)
 
 def decryptedDataAndSign(textData):
@@ -203,7 +212,13 @@ def decryptedDataAndSign(textData):
     }
     apiModel = aapi.ApiModel()
     sign = apiModel.md5Sign(data)
-    data['sign'] = sign
+    data["sign"] = sign
     return data, result
+
+def signData(data):
+    apiModel = aapi.ApiModel()
+    sign = apiModel.md5Sign(data)
+    data['sign'] = sign
+    return data
      
 

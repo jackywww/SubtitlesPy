@@ -3,11 +3,10 @@ from app.models.rsa import RsaModel
 from app.models.key import Key
 from app.models.api import ApiModel
 from app.models.mac import MacAddressModel
-# import psutil
 import global_vars
+import tkinter
 
 if __name__ == '__main__':
-    # print(psutil.cpu_count())
 
     rsaModel = RsaModel()
     # publicKeyPath = global_vars.root_path + '/public_key.pem'
@@ -19,6 +18,7 @@ if __name__ == '__main__':
     # print(data)
     
     akeyModel = Key()
+
     keyResult = akeyModel.readKey(global_vars.root_path + "/key")
 
     if len(keyResult) == 0 :
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     privateKey = rsaModel.privateKey(privateKeyPath)
     keyData = rsaModel.decryptedData(keyResult, privateKey)
     
-
+    message = ""
     if len(keyData) == 0:
         activateState = False
     else:
@@ -39,21 +39,24 @@ if __name__ == '__main__':
         name = splitData[0]
         sign = apiModel.md5Sign({"name": name})
 
-        resultData = apiModel.getStateAndMacAddress({"name": name, "sign": sign})
+        try:
+            resultData = apiModel.getStateAndMacAddress({"name": name, "sign": sign})
 
-        if 'status' in resultData:
-            if resultData['status'] == 0:
-                activateState = False
-
-            if resultData['status'] == 1:
-                data = resultData['data']
-                macAddressModel = MacAddressModel()
-                macAddress = macAddressModel.getMacAddress()
-                
-                if data['state'] == 0 or data['mac_address'] != macAddress:
+            if 'status' in resultData:
+                if resultData['status'] == 0:
                     activateState = False
 
-    windows = Windows(activateState)
+                if resultData['status'] == 1:
+                    data = resultData['data']
+                    macAddressModel = MacAddressModel()
+                    macAddress = macAddressModel.getMacAddress()
+                    
+                    if data['state'] == 0 or data['mac_address'] != macAddress:
+                        activateState = False
+        except Exception as errorInfo:
+            message = "网络异常"
+
+    windows = Windows(activateState, message)
     windows.run()
 
 

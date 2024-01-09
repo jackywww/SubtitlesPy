@@ -1,5 +1,4 @@
-from multiprocessing import Process, Queue
-from moviepy.editor import VideoFileClip
+from multiprocessing import Process, Queue, Lock
 import os
 from app.models.ocr import Ocr
 import app.models.rsa as arsa
@@ -8,20 +7,22 @@ import app.models.api as aapi
 
 import cv2
 import psutil
+import mmcv
 import global_vars
+import math
 
 modelBaseDIR = global_vars.root_path + "/paddleocr/"
 PEM_DIR = global_vars.root_path + "/"
 
 line = 1
-qCount = Queue(maxsize=int(psutil.cpu_count()))
+progressBarQueue = Queue(maxsize=int(psutil.cpu_count()))
 qValue = 0
 
 allProcess = []
 
 stopProcessBar = False
 
-q = Queue(maxsize=1)
+subtitleResultQueue = Queue(maxsize=1)
 
 def progressBarCount(frameCounts, callBack):
      global qValue
@@ -31,7 +32,7 @@ def progressBarCount(frameCounts, callBack):
           if stopProcessBar :
                break
           try:
-            qValue += qCount.get(timeout=10)
+            qValue += progressBarQueue.get(timeout=10)
           except:
                callBack(1)
                continue
@@ -41,13 +42,23 @@ def progressBarCount(frameCounts, callBack):
      qValue = 0
           
 
-def getSubText(clip, y1, y2, scaleValue, index, q, useGpu, cpuNum, speed, widthVideo):
+def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo):
         
         ocr = Ocr(baseDir=modelBaseDIR,useGpu=useGpu,totalProcessNum=cpuNum)
         indexFrame = 0
         resultData = []
-       
-        for frame in clip.iter_frames():
+        
+        lock.acquire()
+        video = mmcv.VideoReader(videoPath)
+        start = index*global_vars.stepFrameCount
+        end = start + global_vars.stepFrameCount
+
+        if index + 1 != stepCounts:
+            clip = video[start:end]
+        else:
+             clip = video[start:]
+        lock.release()
+        for frame in clip:
             subFrame = frame[int(y1*scaleValue):int(y2*scaleValue),0:int(widthVideo)]
             
             img = cv2.cvtColor(subFrame,cv2.COLOR_BGR2RGBA)
@@ -78,69 +89,48 @@ def getSubText(clip, y1, y2, scaleValue, index, q, useGpu, cpuNum, speed, widthV
                             resultData[-1]['end'] = indexFrame
      
             indexFrame += 1
-            qCount.put(1)
+            progressBarQueue.put(1)
             
         shareData = {}
         shareData['index'] = index
         shareData['count'] = indexFrame
         shareData['data'] = resultData
 
-        q.put(shareData)
+        subtitleResultQueue.put(shareData)
 
 def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, callBack):  
         threads = []
         global allProcess
-        video = VideoFileClip(videoPath)
-        time = video.duration - 1
+        video = mmcv.VideoReader(videoPath)
         
-        # duration = math.floor(time/int(self.cpuNum))
-        duration = 10
+        frameCounts = len(video)
+        
 
-        # clips = [video.subclip(i, i+duration) for i in range(0, int(video.duration), duration)]
-        clips = []
-        clipIndex = 1
-        for i in range(0, int(video.duration), duration):
-            if video.duration - i >= duration:
-                clips.append(video.subclip(i, i+duration))
-            else:
-                clips.append(video.subclip(i))
-            clipIndex += 1
- 
-        length = len(clips)
+
+        stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
+        
         qData = []
-        for i in range(length):
+        for i in range(stepCounts):
             qData.append({})
 
-        # q = Queue(maxsize=10)
-        global q
 
-        clipLast = clips.pop()
-        last = Process(target=getSubText, args=(clipLast, y1, y2, scaleValue, len(clips), q, useGpu, cpuNum, speed, widthVideo))
-        allProcess.append(last)
-        last.start()
-        last.join()
-
-
-        getV = q.get(timeout=1)
-        qData[getV["index"]] = getV
-
-        for i in range(length-1):
+        lock = Lock()
+        for index in range(stepCounts):
             _data = []
-            val = clips[i]
-            t = Process(target=getSubText, args=(val, y1, y2, scaleValue, i, q,  useGpu, cpuNum, speed, widthVideo))
+            t = Process(target=getSubText, args=(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo))
             threads.append(t)
             allProcess.append(t)
-            if (i+1)%int(cpuNum) == 0 or (i+1 == length - 1):
+            if (index+1)%int(cpuNum) == 0 or (index+1 == stepCounts - 1):
                 for thread in threads:
                     thread.start()
                 for thread in threads:
-                    getV = q.get()
+                    getV = subtitleResultQueue.get()
                     qData[getV["index"]] = getV
 
                 threads.clear()
             
         stepCounts = 0
-        fps = video.reader.fps
+        fps = video.fps
         global line
         line = 1
         for clipValue in qData:

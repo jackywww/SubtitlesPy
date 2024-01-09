@@ -5,3 +5,6 @@ root_path = os.path.dirname(os.path.abspath(__file__))
 
 global baseUrl
 baseUrl = "http://wwww.115959pm.com:8099/"
+
+global stepFrameCount
+stepFrameCount = 100

@@ -17,9 +17,10 @@ if __name__ == '__main__':
 
     # data = rsaModel.encrytedData(message, publicKey)
     # print(data)
-
+    
     akeyModel = Key()
-    keyResult = akeyModel.readKey("key")
+    keyResult = akeyModel.readKey(global_vars.root_path + "/key")
+
     if len(keyResult) == 0 :
         activateState=False
 
@@ -48,7 +49,7 @@ if __name__ == '__main__':
                 data = resultData['data']
                 macAddressModel = MacAddressModel()
                 macAddress = macAddressModel.getMacAddress()
-
+                
                 if data['state'] == 0 or data['mac_address'] != macAddress:
                     activateState = False
 

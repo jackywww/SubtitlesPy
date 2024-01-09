@@ -58,6 +58,7 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
         else:
              clip = video[start:]
         lock.release()
+        
         for frame in clip:
             subFrame = frame[int(y1*scaleValue):int(y2*scaleValue),0:int(widthVideo)]
             
@@ -108,9 +109,11 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
 
 
         stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
-        if int(cpuNum) > int(stepCounts):
+        print(stepCounts,frameCounts,global_vars.stepFrameCount)
+        if int(cpuNum) >= int(stepCounts):
              global_vars.stepFrameCount = math.floor(frameCounts / int(cpuNum))
              stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
+        print(stepCounts,global_vars.stepFrameCount)
         
         qData = []
         for i in range(stepCounts):
@@ -124,8 +127,7 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
             _data = []
             t = Process(target=getSubText, args=(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo))
             threads.append(t)
-            allProcess.append(t)
-            if (index+1)%int(cpuNum) == 0 or (index+1 == stepCounts - 1):
+            if (index+1)%int(cpuNum) == 0 or (index+1 == stepCounts):
                 for thread in threads:
                     thread.start()
                 for thread in threads:
@@ -140,8 +142,10 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
         line = 1
         for clipValue in qData:
             _data = clipValue['data']
+
             toSrt(step=stepCounts, data=_data, fps=fps, path=videoPath)
             stepCounts += int(clipValue['count'])
+            test += 1
 
         callBack()
         callBackShowSuccessInfo(videoPath + ".srt")

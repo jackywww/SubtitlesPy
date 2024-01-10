@@ -195,7 +195,7 @@ def timeFormate(s):
 def toSrt(step, data, fps, path):
         if len(data) > 0 :
             for value in data:
-                with open(path + ".srt", "a") as file:
+                with open(path + ".srt", "a", encoding="utf-8") as file:
                     startTimeStr = timeFormate((value['start'] + step)/fps)
                     endTimeStr = timeFormate((value['end'] + 1 + step)/fps)
                     global line

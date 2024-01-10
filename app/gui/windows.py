@@ -333,7 +333,8 @@ class Windows():
                     keymodel = akey.Key()
                     resultSave = keymodel.writeKey(PEM_DIR + 'key', textData)
                     if resultSave == True:
-                        self.tryAgain()
+                        self.activate.grid_remove()
+                        self.activateTrue()
                         return
 
         except Exception as e:
@@ -392,10 +393,10 @@ class Windows():
 
         self.recScale = tkinter.Scale(
                 from_ = 1,
-                to = 2,
+                to = 3,
                 orient=tkinter.HORIZONTAL, 
                 resolution= 0.1,
-                tickinterval= 0.1,
+                tickinterval= 0.3,
                 length=20,
                 showvalue=True,
                 command=self.changeSpeed,

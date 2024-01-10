@@ -5,8 +5,8 @@ import app.models.rsa as arsa
 import app.models.mac as amac
 import app.models.api as aapi
 
+
 import cv2
-import psutil
 import mmcv
 import global_vars
 import math
@@ -15,34 +15,32 @@ modelBaseDIR = global_vars.root_path + "/paddleocr/"
 PEM_DIR = global_vars.root_path + "/"
 
 line = 1
-progressBarQueue = Queue(maxsize=int(psutil.cpu_count()))
+
 qValue = 0
 
 allProcess = []
 
 stopProcessBar = False
 
-subtitleResultQueue = Queue(maxsize=1)
 
-def progressBarCount(frameCounts, callBack):
+
+def progressBarCount(frameCounts, progressBarQueue, callBack):
      global qValue
      global stopProcessBar
-     
+
      while qValue != frameCounts:
-          if stopProcessBar :
-               break
+
           try:
-            qValue += progressBarQueue.get(timeout=10)
+            qValue += progressBarQueue.get()
           except:
-               callBack(1)
                continue
-          
-          callBack(int((qValue/frameCounts)*100))
+
+          callBack(float((qValue/frameCounts)*100))
 
      qValue = 0
           
 
-def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo):
+def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue):
         
         ocr = Ocr(baseDir=modelBaseDIR,useGpu=useGpu,totalProcessNum=cpuNum)
         indexFrame = 0
@@ -90,7 +88,9 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
                             resultData[-1]['end'] = indexFrame
      
             indexFrame += 1
+
             progressBarQueue.put(1)
+            
             
         shareData = {}
         shareData['index'] = index
@@ -99,7 +99,8 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
 
         subtitleResultQueue.put(shareData)
 
-def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, callBack, callBackShowSuccessInfo):  
+def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, callBack, callBackShowSuccessInfo, progressBarQueue, name):  
+
         threads = []
         global allProcess
         video = mmcv.VideoReader(videoPath)
@@ -109,11 +110,9 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
 
 
         stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
-        print(stepCounts,frameCounts,global_vars.stepFrameCount)
         if int(cpuNum) >= int(stepCounts):
              global_vars.stepFrameCount = math.floor(frameCounts / int(cpuNum))
              stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
-        print(stepCounts,global_vars.stepFrameCount)
         
         qData = []
         for i in range(stepCounts):
@@ -122,10 +121,10 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
 
         lock = Lock()
         
-
+        subtitleResultQueue = Queue(maxsize=1)
         for index in range(stepCounts):
             _data = []
-            t = Process(target=getSubText, args=(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo))
+            t = Process(target=getSubText, args=(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue))
             threads.append(t)
             if (index+1)%int(cpuNum) == 0 or (index+1 == stepCounts):
                 for thread in threads:
@@ -140,17 +139,42 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
         fps = video.fps
         global line
         line = 1
+        checkResult = checkMac(name)
+        if checkResult == False:
+            callBackShowSuccessInfo("一个激活码不能多台电脑同时用")
+            callBack()
+            return
         for clipValue in qData:
             _data = clipValue['data']
 
             toSrt(step=stepCounts, data=_data, fps=fps, path=videoPath)
             stepCounts += int(clipValue['count'])
-            test += 1
 
         callBack()
-        callBackShowSuccessInfo(videoPath + ".srt")
+        callBackShowSuccessInfo("提取完毕！srt 文件地址:" + videoPath + ".srt")
         
-        
+def checkMac(name):
+    if len(name) == 0:
+        return True
+    
+    apiModel = aapi.ApiModel()
+    sign = apiModel.md5Sign({"name": name})
+
+    try:
+        resultData = apiModel.getStateAndMacAddress({"name": name, "sign": sign})
+
+        if 'status' in resultData:
+            if resultData['status'] == 1:
+                data = resultData['data']
+                macAddressModel = amac.MacAddressModel()
+                macAddress = macAddressModel.getMacAddress()
+                
+                if data['mac_address'] != macAddress:
+                    return False
+    except Exception as errorInfo:
+       return True
+
+    return True       
 
 def timeFormate(s):
         timeMs = int(round(s*1000))

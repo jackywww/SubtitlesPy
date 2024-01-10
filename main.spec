@@ -4,21 +4,26 @@
 a = Analysis(
     ['main.py'],
     pathex=[
-        '/home/jacky/anaconda3/envs/videoEnv/lib/python3.9/site-packages/paddleocr',
-        '/home/jacky/anaconda3/envs/videoEnv/lib/python3.9/site-packages/paddle/libs',
-        '/home/jacky/anaconda3/envs/videoEnv/lib/python3.9/site-packages/PIL'
+        'E:\\anaconda3\\envs\\videoenv\\lib\\site-packages\\paddleocr',
+        'E:\\anaconda3\\envs\\videoenv\\lib\\site-packages\\paddle\\libs',
+        'E:\\anaconda3\\envs\\videoenv\\lib\\site-packages\\numpy.libs',
+        'E:\\anaconda3\\envs\\videoenv\\lib\\site-packages\\PIL'
     ],
     binaries=[
-        ('/home/jacky/anaconda3/envs/videoEnv/lib/python3.9/site-packages/paddleocr', '.'),
-        ('/home/jacky/anaconda3/envs/videoEnv/lib/python3.9/site-packages/paddle/libs','.'),
-        ('/home/jacky/anaconda3/envs/videoEnv/lib/python3.9/site-packages/PIL', '.')
+        ('E:\\anaconda3\\envs\\videoenv\\lib\\site-packages\\paddleocr', '.'),
+        ('E:\\anaconda3\\envs\\videoenv\\lib\\site-packages\\paddle\libs','.'),
+        ('E:\\anaconda3\\envs\\videoenv\\lib\\site-packages\\numpy.libs','.'),
+        ('E:\\anaconda3\\envs\\videoenv\\lib\\site-packages\\PIL', '.')
     ],
     datas=[],
     hiddenimports=[
         'paddleocr',
         'PIL',
         'tkinter',
-        'PIL._tkinter_finder'
+        'numpy',
+        'PIL._tkinter_finder',
+        'addict',
+        'yapf'
     ],
     hookspath=[],
     hooksconfig={},

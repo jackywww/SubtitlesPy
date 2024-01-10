@@ -4,10 +4,9 @@ from app.models.key import Key
 from app.models.api import ApiModel
 from app.models.mac import MacAddressModel
 import global_vars
-import tkinter
-
+import multiprocessing
 if __name__ == '__main__':
-
+    multiprocessing.freeze_support()
     rsaModel = RsaModel()
     # publicKeyPath = global_vars.root_path + '/public_key.pem'
     # publicKey = rsaModel.publicKey(publicKeyPath)
@@ -21,6 +20,7 @@ if __name__ == '__main__':
 
     keyResult = akeyModel.readKey(global_vars.root_path + "/key")
 
+
     if len(keyResult) == 0 :
         activateState=False
 
@@ -29,6 +29,7 @@ if __name__ == '__main__':
     keyData = rsaModel.decryptedData(keyResult, privateKey)
     
     message = ""
+    name = ""
     if len(keyData) == 0:
         activateState = False
     else:
@@ -56,7 +57,7 @@ if __name__ == '__main__':
         except Exception as errorInfo:
             message = "网络异常"
 
-    windows = Windows(activateState, message)
+    windows = Windows(activateState, message, name)
     windows.run()
 
 

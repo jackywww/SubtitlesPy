@@ -1,7 +1,6 @@
 import requests
 import hashlib
 import global_vars
-import json
 
 class ApiModel():
    def __init__(self):
@@ -9,7 +8,7 @@ class ApiModel():
       
    
    def post(self, url, parms):
-      r = requests.post(url, json=parms)
+      r = requests.post(url, json=parms, timeout=10)
       return r.json()
    
    def activate(self, data):

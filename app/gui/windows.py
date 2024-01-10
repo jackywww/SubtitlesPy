@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import font
+from multiprocessing import Queue
 import tkinter
 from tkinter.filedialog import *
 from PIL import ImageTk, Image
@@ -21,7 +22,7 @@ PEM_DIR = global_vars.root_path + "/"
 
 modelBaseDIR = global_vars.root_path + "/paddleocr/"
 class Windows():
-    def __init__(self, activateState, message):
+    def __init__(self, activateState, message, name):
         self.root = Tk(className="概")
         self.activateState = activateState
         self.scalValue = 1
@@ -52,6 +53,7 @@ class Windows():
         self.useGpu = True
         self.currentFrameIndex = 1
         self.message = message
+        self.userName = name
          
         
         
@@ -72,7 +74,7 @@ class Windows():
         self.canvas = Canvas(self.right, width=int(self.widthVideo/self.scalValue),height=int(self.heightVideo/self.scalValue), bg="white")
         self.right.add(self.canvas, stretch='always')
 
-        return int(self.widthVideo/self.scalValue)
+        return int(self.widthVideo/self.scalValue), int(self.heightVideo/self.scalValue)
 
     def getVideoSize(self):
         self.widthVideo  = self.video.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -197,10 +199,13 @@ class Windows():
             self.right.destroy()
             self.right = PanedWindow(orient='vertical')
             self.right.grid(row=0, column=1)
-            videoWidth = self.openVideo(val)
+            videoWidth, videoHeight = self.openVideo(val)
             counts = self.getFrameCounts() - 1
             _width = int(self.width / 2) + int(videoWidth) - int(self.width / 4) + 10
-            self.root.geometry("%dx%d" % (_width, int(self.height / 2)))
+
+            if videoHeight+40 < 290:
+                videoHeight = 290
+            self.root.geometry("%dx%d" % (_width, videoHeight+40))
             scale = tkinter.Scale(
                 self.right,
                 from_=1,
@@ -214,6 +219,8 @@ class Windows():
 
             self.right.add(scale) 
             self.changeFrame(1)
+
+           
 
 
 
@@ -269,11 +276,12 @@ class Windows():
             speed = self.speed
             widthVideo = self.widthVideo
 
-            tCount = threading.Thread(target=ast.progressBarCount, args=(frameCounts, self.setProgressBar))
+            progressBarQueue = Queue(maxsize=int(psutil.cpu_count()))
+            tCount = threading.Thread(target=ast.progressBarCount, args=(frameCounts, progressBarQueue, self.setProgressBar))
             tCount.start()
             self.threads.append(tCount)
 
-            t = threading.Thread(target=ast.getText, args=(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, self.normalButton,self.showSuccessInfo))
+            t = threading.Thread(target=ast.getText, args=(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, self.normalButton, self.showSuccessInfo, progressBarQueue, self.userName))
             t.start()
             self.threads.append(t)
         
@@ -333,7 +341,8 @@ class Windows():
                     keymodel = akey.Key()
                     resultSave = keymodel.writeKey(PEM_DIR + 'key', textData)
                     if resultSave == True:
-                        self.tryAgain()
+                        self.activate.grid_remove()
+                        self.activateTrue()
                         return
 
         except Exception as e:
@@ -341,7 +350,7 @@ class Windows():
         tkinter.messagebox.showinfo("提示", "激活码异常，请联系商家")
 
     def showSuccessInfo(self, path):
-        tkinter.messagebox.showinfo("提示", "srt 文件地址:" + path)
+        tkinter.messagebox.showinfo("提示",  path)
     
     def activateTrue(self):
         self.pic = PhotoImage(file=BASE_DIR + "open.png")
@@ -392,10 +401,10 @@ class Windows():
 
         self.recScale = tkinter.Scale(
                 from_ = 1,
-                to = 2,
+                to = 3,
                 orient=tkinter.HORIZONTAL, 
                 resolution= 0.1,
-                tickinterval= 0.1,
+                tickinterval= 0.3,
                 length=20,
                 showvalue=True,
                 command=self.changeSpeed,

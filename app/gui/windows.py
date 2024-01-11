@@ -50,7 +50,7 @@ class Windows():
         self.cpuNum = int(self.cpuCounts/2)
         self.speed = 2
         self.threads = []
-        self.useGpu = True
+        self.useGpu = False
         self.currentFrameIndex = 1
         self.message = message
         self.userName = name
@@ -264,7 +264,26 @@ class Windows():
         # self.buttonStop.config(state=tkinter.DISABLED)
 
     def startRun(self):
-        
+        if len(self.userName) == 0:
+            macAddressModel = amac.MacAddressModel()
+            macAddress = macAddressModel.getMacAddress()
+            data = ast.signData({"mac_address":macAddress})
+
+            apiModel = aapi.ApiModel()
+
+            apiResult = apiModel.tryAgain(data)
+            if apiResult['status'] == 0:
+                tkinter.messagebox.showinfo("提示", "服务异常，请联系商家")
+                return
+            
+            if apiResult['status'] == 1:
+                resultData = apiResult['data']
+                if resultData == False:
+                    tkinter.messagebox.showinfo("提示", "试用次数已经用完，请激活")
+                    self.left.grid_remove()
+                    self.activateFalse()
+                    return
+            
         frameCounts = self.getFrameCounts()
         if frameCounts > 0 :
             self.disableButton()
@@ -342,7 +361,11 @@ class Windows():
                     resultSave = keymodel.writeKey(PEM_DIR + 'key', textData)
                     if resultSave == True:
                         self.activate.grid_remove()
+                        self.left.grid_remove()
                         self.activateTrue()
+                        tkinter.messagebox.showinfo("提示", "激活成功，系统自动关闭！请再一次双击程序！")
+                        ast.terminateProcess()
+                        self.root.destroy()
                         return
 
         except Exception as e:
@@ -353,6 +376,7 @@ class Windows():
         tkinter.messagebox.showinfo("提示",  path)
     
     def activateTrue(self):
+        self.left = PanedWindow(orient='vertical', width=int(self.width / 4))
         self.pic = PhotoImage(file=BASE_DIR + "open.png")
         self.button = tkinter.Button(image=self.pic, command=self.openFile)
 
@@ -473,22 +497,22 @@ class Windows():
 
         
     def tryAgain(self):
-        macAddressModel = amac.MacAddressModel()
-        macAddress = macAddressModel.getMacAddress()
-        data = ast.signData({"mac_address":macAddress})
+        # macAddressModel = amac.MacAddressModel()
+        # macAddress = macAddressModel.getMacAddress()
+        # data = ast.signData({"mac_address":macAddress})
 
-        apiModel = aapi.ApiModel()
+        # apiModel = aapi.ApiModel()
 
-        apiResult = apiModel.tryAgain(data)
-        if apiResult['status'] == 0:
-            tkinter.messagebox.showinfo("提示", "服务异常，请联系商家")
-            return
+        # apiResult = apiModel.tryAgain(data)
+        # if apiResult['status'] == 0:
+        #     tkinter.messagebox.showinfo("提示", "服务异常，请联系商家")
+        #     return
         
-        if apiResult['status'] == 1:
-            resultData = apiResult['data']
-            if resultData == False:
-                tkinter.messagebox.showinfo("提示", "试用次数已经用完，请联系商家")
-                return
+        # if apiResult['status'] == 1:
+        #     resultData = apiResult['data']
+        #     if resultData == False:
+        #         tkinter.messagebox.showinfo("提示", "试用次数已经用完，请联系商家")
+        #         return
             
         self.activate.grid_remove()
         self.activateTrue()

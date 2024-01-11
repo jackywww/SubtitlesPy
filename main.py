@@ -42,7 +42,6 @@ if __name__ == '__main__':
 
         try:
             resultData = apiModel.getStateAndMacAddress({"name": name, "sign": sign})
-
             if 'status' in resultData:
                 if resultData['status'] == 0:
                     activateState = False

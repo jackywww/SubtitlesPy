@@ -5,7 +5,7 @@ import app.models.rsa as arsa
 import app.models.mac as amac
 import app.models.api as aapi
 
-
+import threading
 import cv2
 import mmcv
 import global_vars
@@ -40,7 +40,7 @@ def progressBarCount(frameCounts, progressBarQueue, callBack):
      qValue = 0
           
 
-def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue):
+def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue, processNum):
         
         ocr = Ocr(baseDir=modelBaseDIR,useGpu=useGpu,totalProcessNum=cpuNum)
         indexFrame = 0
@@ -98,8 +98,9 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
         shareData['data'] = resultData
 
         subtitleResultQueue.put(shareData)
+        processNum.get()
 
-def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, callBack, callBackShowSuccessInfo, progressBarQueue, name):  
+def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, callBack, callBackShowSuccessInfo, progressBarQueue, name, toActivateCodeWindow):  
 
         threads = []
         global allProcess
@@ -114,44 +115,32 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
              global_vars.stepFrameCount = math.floor(frameCounts / int(cpuNum))
              stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
         
-        qData = []
-        for i in range(stepCounts):
-            qData.append({})
-
+        
 
         lock = Lock()
         
         subtitleResultQueue = Queue(maxsize=1)
-        for index in range(stepCounts):
-            _data = []
-            t = Process(target=getSubText, args=(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue))
-            threads.append(t)
-            if (index+1)%int(cpuNum) == 0 or (index+1 == stepCounts):
-                for thread in threads:
-                    thread.start()
-                for thread in threads:
-                    getV = subtitleResultQueue.get()
-                    qData[getV["index"]] = getV
-
-                threads.clear()
-            
-        stepCounts = 0
+        processNum = Queue(int(cpuNum))
         fps = video.fps
-        global line
-        line = 1
-        checkResult = checkMac(name)
-        if checkResult == False:
-            callBackShowSuccessInfo("一个激活码不能多台电脑同时用")
-            callBack()
-            return
-        for clipValue in qData:
-            _data = clipValue['data']
 
-            toSrt(step=stepCounts, data=_data, fps=fps, path=videoPath)
-            stepCounts += int(clipValue['count'])
+        consumerThread = threading.Thread(target=consumer, args=(videoPath, name, fps, stepCounts, subtitleResultQueue, callBackShowSuccessInfo, toActivateCodeWindow, callBack))
+        consumerThread.start()
+        
+        for index in range(stepCounts):
+            processNum.put(1)
+            t = Process(target=getSubText, args=(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue, processNum))
+            t.start()
+           
+            # if (index+1)%int(cpuNum) == 0 or (index+1 == stepCounts):
+            #     for thread in threads:
+            #         thread.start()
+            #     for thread in threads:
+            #         getV = subtitleResultQueue.get()
+            #         qData[getV["index"]] = getV
 
-        callBack()
-        callBackShowSuccessInfo("提取完毕！srt 文件地址:" + videoPath + ".srt")
+            #     threads.clear()
+                
+        
         
 def checkMac(name):
     if len(name) == 0:
@@ -175,6 +164,37 @@ def checkMac(name):
        return True
 
     return True       
+def consumer(videoPath, name, fps, stepCounts, subtitleResultQueue, callBackShowSuccessInfo, toActivateCodeWindow, callBack):
+    qData = []
+    for i in range(stepCounts):
+        qData.append({})
+
+    i = 1
+    while True:
+        if i > stepCounts:
+            break
+        getV = subtitleResultQueue.get()
+        qData[getV["index"]] = getV
+        i += 1
+        
+
+    stepCounts = 0
+    
+    global line
+    line = 1
+    checkResult = checkMac(name)
+    if checkResult == False:
+        callBackShowSuccessInfo("一个激活码不能多台电脑同时用")
+        toActivateCodeWindow()
+        return
+    for clipValue in qData:
+        _data = clipValue['data']
+
+        toSrt(step=stepCounts, data=_data, fps=fps, path=videoPath)
+        stepCounts += int(clipValue['count'])
+
+    callBack()
+    callBackShowSuccessInfo("提取完毕！srt 文件地址:" + videoPath + ".srt")
 
 def timeFormate(s):
         timeMs = int(round(s*1000))

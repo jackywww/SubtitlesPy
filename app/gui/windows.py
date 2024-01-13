@@ -50,7 +50,7 @@ class Windows():
         self.cpuNum = int(self.cpuCounts/2)
         self.speed = 2
         self.threads = []
-        self.useGpu = False
+        self.useGpu = True
         self.currentFrameIndex = 1
         self.message = message
         self.userName = name
@@ -300,9 +300,13 @@ class Windows():
             tCount.start()
             self.threads.append(tCount)
 
-            t = threading.Thread(target=ast.getText, args=(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, self.normalButton, self.showSuccessInfo, progressBarQueue, self.userName))
+            t = threading.Thread(target=ast.getText, args=(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, self.normalButton, self.showSuccessInfo, progressBarQueue, self.userName, self.toActivateCodeWindow))
             t.start()
             self.threads.append(t)
+        
+    def toActivateCodeWindow(self):
+        self.left.grid_remove()
+        self.activateFalse()
         
     def changeCpuNum(self, value): 
         self.cpuNum = value   

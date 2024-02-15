@@ -160,11 +160,11 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
 
         #     
             
-        progressBarQueue.put(len(clip))
+        progressBarQueue.put(right+1)
 
         shareData = {}
         shareData['index'] = index
-        shareData['count'] = len(clip)
+        shareData['count'] = right+1
         shareData['data'] = resultData
 
         subtitleResultQueue.put(shareData)

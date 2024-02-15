@@ -17,5 +17,8 @@ class Ocr(PaddleOCR):
             show_log=False,
             use_gpu=useGpu,
             use_mp=True,
-            total_process_num = totalProcessNum
+            total_process_num = totalProcessNum,
+            use_space_char = True,
+            cls = False,
+
         )

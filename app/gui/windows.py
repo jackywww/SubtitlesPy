@@ -50,7 +50,7 @@ class Windows():
         self.cpuNum = int(self.cpuCounts/2)
         self.speed = 2
         self.threads = []
-        self.useGpu = True
+        self.useGpu = False
         self.currentFrameIndex = 1
         self.message = message
         self.userName = name

@@ -38,12 +38,56 @@ def progressBarCount(frameCounts, progressBarQueue, callBack):
           callBack(float((qValue/frameCounts)*100))
 
      qValue = 0
-          
+
+def getFrameSubTitle(frame, y1, y2, scaleValue, speed, widthVideo, ocr):
+        subFrame = frame[int(y1*scaleValue):int(y2*scaleValue),0:int(widthVideo)]
+            
+        img = cv2.cvtColor(subFrame,cv2.COLOR_BGR2RGBA)
+        h, w, _ = img.shape
+
+        a = cv2.resize(img, (int(w/float(speed)),int(h/float(speed))),interpolation=cv2.INTER_NEAREST)
+        
+        result = ocr.ocr(a, cls=True)
+        resultString = ""
+
+        if result[0] is not None :
+            if result[0][0][-1][1] >= 0.8:
+                resultString = result[0][0][-1][0]
+                    
+        return resultString  
+
+def binarySearch(left, right, searchValue, clip, noneSubTitleData, subTitltData, y1, y2, scaleValue, speed, widthVideo, ocr):
+     while left <= right :
+        mid = math.floor((left + right) / 2)
+        midResult = getFrameSubTitle(clip[mid],y1, y2, scaleValue, speed, widthVideo, ocr)
+        if len(midResult) > 0:
+            subTitltData[mid] = midResult
+        else:
+            noneSubTitleData[mid] = 1
+
+        if midResult != searchValue :
+             right = mid - 1
+             continue
+
+        if mid == right:
+             return mid, subTitltData, noneSubTitleData
+        
+        midNextResult = getFrameSubTitle(clip[mid+1],y1, y2, scaleValue, speed, widthVideo, ocr)
+        if len(midNextResult) > 0:
+            subTitltData[mid+1] = midNextResult
+        else:
+            noneSubTitleData[mid+1] = 1
+
+        if midNextResult != searchValue :
+             return mid, subTitltData, noneSubTitleData
+        else:
+             left = mid + 1
+
+        
 
 def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue, processNum):
         
         ocr = Ocr(baseDir=modelBaseDIR,useGpu=useGpu,totalProcessNum=cpuNum)
-        indexFrame = 0
         resultData = []
         
         lock.acquire()
@@ -56,45 +100,71 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
         else:
              clip = video[start:]
         lock.release()
-        
-        for frame in clip:
-            subFrame = frame[int(y1*scaleValue):int(y2*scaleValue),0:int(widthVideo)]
+        left = 0
+        right = len(clip) - 1
+        noneSubTitleData = {}
+        subTitltData = {}
+        while left <= right :
             
-            img = cv2.cvtColor(subFrame,cv2.COLOR_BGR2RGBA)
-            h, w, _ = img.shape
+            frame = clip[left]
+            result = getFrameSubTitle(frame,y1, y2, scaleValue, speed, widthVideo, ocr)
+            if len(result) == 0 :
+                    noneSubTitleData[left] = 1
+                    left += 1
 
-            a = cv2.resize(img, (int(w/float(speed)),int(h/float(speed))),interpolation=cv2.INTER_NEAREST)
+            if len(result) > 0:
+                subTitltData[left] = result
+                searchValue = result
+
+                searchIndex, subTitltData, noneSubTitleData = binarySearch(left, right, searchValue, clip, noneSubTitleData, subTitltData, y1, y2, scaleValue, speed, widthVideo, ocr)
+                resultItem = {}
+                resultItem['title'] = searchValue
+                resultItem['start'] = left
+                resultItem['end'] = searchIndex
+                resultData.append(resultItem)
+                left = searchIndex + 1
+
+        # for frame in clip:
+            #  resultData = getFrameSubTitle(frame,y1, y2, scaleValue, speed, indexFrame, widthVideo, ocr, resultData)
+        # for frame in clip:
+        #     subFrame = frame[int(y1*scaleValue):int(y2*scaleValue),0:int(widthVideo)]
             
-            result = ocr.ocr(a, cls=True)
+        #     img = cv2.cvtColor(subFrame,cv2.COLOR_BGR2RGBA)
+        #     h, w, _ = img.shape
 
-            if result[0] is not None :
-                if result[0][0][-1][1] >= 0.8:
+        #     a = cv2.resize(img, (int(w/float(speed)),int(h/float(speed))),interpolation=cv2.INTER_NEAREST)
+            
+        #     result = ocr.ocr(a, cls=True)
+
+        #     if result[0] is not None :
+        #         if result[0][0][-1][1] >= 0.8:
                     
-                    if len(resultData) == 0 :
-                        resultItem = {}
-                        resultItem['title'] = result[0][0][-1][0]
-                        resultItem['start'] = indexFrame
-                        resultItem['end'] = indexFrame
-                        resultData.append(resultItem)
-                    else:
-                        if resultData[-1]['title'] != result[0][0][-1][0]:
-                            resultItem = {}
-                            resultItem['title'] = result[0][0][-1][0]
-                            resultItem['start'] = indexFrame
-                            resultItem['end'] = indexFrame
-                            resultData.append(resultItem)
+        #             if len(resultData) == 0 :
+        #                 resultItem = {}
+        #                 resultItem['title'] = result[0][0][-1][0]
+        #                 resultItem['start'] = indexFrame
+        #                 resultItem['end'] = indexFrame
+        #                 resultData.append(resultItem)
+        #             else:
+        #                 if resultData[-1]['title'] != result[0][0][-1][0]:
+        #                     resultItem = {}
+        #                     resultItem['title'] = result[0][0][-1][0]
+        #                     resultItem['start'] = indexFrame
+        #                     resultItem['end'] = indexFrame
+        #                     resultData.append(resultItem)
 
-                        if resultData[-1]['title'] == result[0][0][-1][0]:
-                            resultData[-1]['end'] = indexFrame
+        #                 if resultData[-1]['title'] == result[0][0][-1][0]:
+        #                     resultData[-1]['end'] = indexFrame
      
-            indexFrame += 1
+        #     indexFrame += 1
 
-            progressBarQueue.put(1)
+        #     
             
-            
+        progressBarQueue.put(len(clip))
+
         shareData = {}
         shareData['index'] = index
-        shareData['count'] = indexFrame
+        shareData['count'] = len(clip)
         shareData['data'] = resultData
 
         subtitleResultQueue.put(shareData)

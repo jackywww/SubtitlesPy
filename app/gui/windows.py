@@ -429,7 +429,7 @@ class Windows():
 
         self.recScale = tkinter.Scale(
                 from_ = 1,
-                to = 3,
+                to = 2.6,
                 orient=tkinter.HORIZONTAL, 
                 resolution= 0.1,
                 tickinterval= 0.3,

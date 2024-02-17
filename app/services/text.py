@@ -57,31 +57,24 @@ def getFrameSubTitle(frame, y1, y2, scaleValue, speed, widthVideo, ocr):
                     
         return resultString  
 
-def binarySearch(left, right, searchValue, clip, noneSubTitleData, subTitltData, y1, y2, scaleValue, speed, widthVideo, ocr):
+def binarySearch(left, right, searchValue, clip, y1, y2, scaleValue, speed, widthVideo, ocr):
      while left <= right :
         mid = math.floor((left + right) / 2)
 
         midResult = getFrameSubTitle(clip[mid],y1, y2, scaleValue, speed, widthVideo, ocr)
-        if len(midResult) > 0:
-            subTitltData[mid] = midResult
-        else:
-            noneSubTitleData[mid] = 1
+        
 
         if midResult != searchValue :
              right = mid - 1
              continue
 
         if mid == right:
-             return mid, subTitltData, noneSubTitleData
+             return mid
         
         midNextResult = getFrameSubTitle(clip[mid+1],y1, y2, scaleValue, speed, widthVideo, ocr)
-        if len(midNextResult) > 0:
-            subTitltData[mid+1] = midNextResult
-        else:
-            noneSubTitleData[mid+1] = 1
-
+        
         if midNextResult != searchValue :
-             return mid, subTitltData, noneSubTitleData
+             return mid
         else:
              left = mid + 1
 
@@ -112,22 +105,18 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
         lock.release()
         left = 0
         right = len(clip) - 1
-        print(len(clip))
-        noneSubTitleData = {}
-        subTitltData = {}
+
         while left <= right :
             
             frame = clip[left]
             result = getFrameSubTitle(frame,y1, y2, scaleValue, speed, widthVideo, ocr)
             if len(result) == 0 :
-                    noneSubTitleData[left] = 1
                     left += 1
 
             if len(result) > 0:
-                subTitltData[left] = result
                 searchValue = result
 
-                searchIndex, subTitltData, noneSubTitleData = binarySearch(left, right, searchValue, clip, noneSubTitleData, subTitltData, y1, y2, scaleValue, speed, widthVideo, ocr)
+                searchIndex = binarySearch(left, right, searchValue, clip, y1, y2, scaleValue, speed, widthVideo, ocr)
                 resultItem = {}
                 resultItem['title'] = searchValue
                 resultItem['start'] = left

@@ -10,6 +10,7 @@ import cv2
 import mmcv
 import global_vars
 import math
+import gc
 
 modelBaseDIR = global_vars.root_path + "/paddleocr/"
 PEM_DIR = global_vars.root_path + "/"
@@ -59,6 +60,7 @@ def getFrameSubTitle(frame, y1, y2, scaleValue, speed, widthVideo, ocr):
 def binarySearch(left, right, searchValue, clip, noneSubTitleData, subTitltData, y1, y2, scaleValue, speed, widthVideo, ocr):
      while left <= right :
         mid = math.floor((left + right) / 2)
+
         midResult = getFrameSubTitle(clip[mid],y1, y2, scaleValue, speed, widthVideo, ocr)
         if len(midResult) > 0:
             subTitltData[mid] = midResult
@@ -95,13 +97,22 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
         start = index*global_vars.stepFrameCount
         end = start + global_vars.stepFrameCount
 
+        clip = []
+        frameCounts = len(video)
         if index + 1 != stepCounts:
-            clip = video[start:end]
+            while start < end:
+                clip.append(video[start])
+                start += 1
         else:
-             clip = video[start:]
+            end = start + frameCounts % global_vars.stepFrameCount
+            while start < end:
+                clip.append(video[start])
+                start += 1
+        
         lock.release()
         left = 0
         right = len(clip) - 1
+        print(len(clip))
         noneSubTitleData = {}
         subTitltData = {}
         while left <= right :
@@ -200,7 +211,7 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
             processNum.put(1)
             t = Process(target=getSubText, args=(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue, processNum))
             t.start()
-           
+
             # if (index+1)%int(cpuNum) == 0 or (index+1 == stepCounts):
             #     for thread in threads:
             #         thread.start()

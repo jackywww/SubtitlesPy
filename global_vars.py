@@ -8,4 +8,4 @@ baseUrl = "http://wwww.115959pm.com:8099/"
 # baseUrl = "http://127.0.0.1:8099/"
 
 global stepFrameCount
-stepFrameCount = 100
+stepFrameCount = 220

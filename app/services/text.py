@@ -78,83 +78,81 @@ def binarySearch(left, right, searchValue, clip, ocr):
         
 
 def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue, processNum):
-        
-        ocr = Ocr(baseDir=modelBaseDIR,useGpu=useGpu,totalProcessNum=cpuNum)
-        resultData = []
-        
-        lock.acquire()
-        video = mmcv.VideoReader(videoPath)
-        start = index*global_vars.stepFrameCount
-        end = start + global_vars.stepFrameCount
-
-        clip = []
-        frameCounts = len(video)
-        if index + 1 != stepCounts:
-            pass
-        else:
-            end = start + frameCounts % global_vars.stepFrameCount
-
-        while start < end:
-            frame = video[start]
-            subFrame = frame[int(y1*scaleValue):int(y2*scaleValue),0:int(widthVideo)]
-            img = cv2.cvtColor(subFrame,cv2.COLOR_BGR2RGBA)
-            h, w, _ = img.shape
-
-            ocrImg = cv2.resize(img, (int(w/float(speed)),int(h/float(speed))),interpolation=cv2.INTER_NEAREST)
+        try:
+            ocr = Ocr(baseDir=modelBaseDIR,useGpu=useGpu,totalProcessNum=cpuNum)
+            resultData = []
             
-            clip.append(ocrImg)
-            start += 1
-        
-        lock.release()
-        left = 0
-        right = len(clip) - 1
+            lock.acquire()
+            video = mmcv.VideoReader(videoPath)
+            start = index*global_vars.stepFrameCount
+            end = start + global_vars.stepFrameCount
 
-        while left <= right :
+            clip = []
+            frameCounts = len(video)
             
-            frame = clip[left]
-            result = getFrameSubTitle(frame, ocr)
-            if len(result) == 0 :
-                    left += 1
+            if index + 1 == stepCounts:
+                if frameCounts % global_vars.stepFrameCount > 0:
+                    end = start + frameCounts % global_vars.stepFrameCount
 
-            if len(result) > 0:
-                searchValue = result
+            startIndex = start
 
-                searchIndex = binarySearch(left, right, searchValue, clip, ocr)
-                resultItem = {}
-                resultItem['title'] = searchValue
-                resultItem['start'] = left
-                resultItem['end'] = searchIndex
-                resultData.append(resultItem)
-                left = searchIndex + 1
+            while start < end:
 
+                frame = video[start]
+                subFrame = frame[int(y1*scaleValue):int(y2*scaleValue),0:int(widthVideo)]
+                img = cv2.cvtColor(subFrame,cv2.COLOR_BGR2RGBA)
+                h, w, _ = img.shape
+
+                ocrImg = cv2.resize(img, (int(w/float(speed)),int(h/float(speed))),interpolation=cv2.INTER_NEAREST)
+                
+                clip.append(ocrImg)
+                start += 1
             
-        progressBarQueue.put(right+1)
+            lock.release()
+            left = 0
+            right = len(clip) - 1
+            
+            while left <= right :
+                
+                frame = clip[left]
+                result = getFrameSubTitle(frame, ocr)
+                if len(result) == 0 :
+                        left += 1
 
-        shareData = {}
-        shareData['index'] = index
-        shareData['count'] = right+1
-        shareData['data'] = resultData
+                if len(result) > 0:
+                    searchValue = result
 
-        subtitleResultQueue.put(shareData)
-        processNum.get()
+                    searchIndex = binarySearch(left, right, searchValue, clip, ocr)
+                    resultItem = {}
+                    resultItem['title'] = searchValue
+                    resultItem['start'] = startIndex + left
+                    resultItem['end'] = startIndex + searchIndex
+                    resultData.append(resultItem)
+                    left = searchIndex + 1
+
+                
+            progressBarQueue.put(right+1)
+
+            shareData = {}
+            shareData['index'] = index
+            shareData['data'] = resultData
+
+            subtitleResultQueue.put(shareData)
+            processNum.get()
+
+        except Exception as errorInfo:
+            processNum.get()
+            print(errorInfo)
 
 def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, callBack, callBackShowSuccessInfo, progressBarQueue, name, toActivateCodeWindow):  
 
-        threads = []
         global allProcess
         video = mmcv.VideoReader(videoPath)
         
         frameCounts = len(video)
-        
-
 
         stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
-        if int(cpuNum) >= int(stepCounts):
-             global_vars.stepFrameCount = math.floor(frameCounts / int(cpuNum))
-             stepCounts = math.ceil(frameCounts / global_vars.stepFrameCount)
         
-        
-
         lock = Lock()
         
         subtitleResultQueue = Queue(maxsize=1)
@@ -168,17 +166,7 @@ def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, ca
             processNum.put(1)
             t = Process(target=getSubText, args=(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue, processNum))
             t.start()
-
-            # if (index+1)%int(cpuNum) == 0 or (index+1 == stepCounts):
-            #     for thread in threads:
-            #         thread.start()
-            #     for thread in threads:
-            #         getV = subtitleResultQueue.get()
-            #         qData[getV["index"]] = getV
-
-            #     threads.clear()
-                
-        
+                  
         
 def checkMac(name):
     if len(name) == 0:
@@ -201,7 +189,8 @@ def checkMac(name):
     except Exception as errorInfo:
        return True
 
-    return True       
+    return True   
+    
 def consumer(videoPath, name, fps, stepCounts, subtitleResultQueue, callBackShowSuccessInfo, toActivateCodeWindow, callBack):
     qData = []
     for i in range(stepCounts):
@@ -225,11 +214,53 @@ def consumer(videoPath, name, fps, stepCounts, subtitleResultQueue, callBackShow
         callBackShowSuccessInfo("一个激活码不能多台电脑同时用")
         toActivateCodeWindow()
         return
-    for clipValue in qData:
-        _data = clipValue['data']
+    
+    allData = []
+    
+    for value in qData:
 
-        toSrt(step=stepCounts, data=_data, fps=fps, path=videoPath)
-        stepCounts += int(clipValue['count'])
+         allData = allData + value["data"]
+    fileData = []
+
+    qlen = len(allData)
+    data = []
+    for key in range (qlen):
+        currentData = allData[key]
+        
+        if len(data) == 0:
+            data = currentData
+            if key + 1 == qlen:
+                fileData.append(data)
+                data = [] 
+
+            continue
+
+        if data["title"] == currentData["title"]:
+            if data["end"] < currentData["end"]:
+                data["end"] = currentData["end"]
+            else:
+                if data["start"] > currentData["start"]:
+                    data["start"] = currentData["start"]
+
+            if key + 1 == qlen:
+                fileData.append(data)
+
+            continue
+        
+        else:
+                fileData.append(data)
+                data = currentData
+
+                if key + 1 == qlen:
+                    fileData.append(data)
+            
+
+            
+        
+
+        # toSrt(data=_data, fps=fps, path=videoPath)
+
+    toSrt(data=fileData, fps=fps, path=videoPath)
 
     callBack()
     callBackShowSuccessInfo("提取完毕！srt 文件地址:" + videoPath + ".srt")
@@ -250,12 +281,12 @@ def timeFormate(s):
 
         return str(h) + ":" + str(m) + ":" + str(s) + "," + str(ms)
 
-def toSrt(step, data, fps, path):
+def toSrt(data, fps, path):
         if len(data) > 0 :
             for value in data:
                 with open(path + ".srt", "a", encoding="utf-8") as file:
-                    startTimeStr = timeFormate((value['start'] + step)/fps)
-                    endTimeStr = timeFormate((value['end'] + 1 + step)/fps)
+                    startTimeStr = timeFormate((value['start'] + 0)/fps)
+                    endTimeStr = timeFormate((value['end'] + 1)/fps)
                     global line
                     lines = [ str(line) + "\n", startTimeStr + " --> " + endTimeStr + "\n", value['title'] + "\n\n"]
                     file.writelines(lines)

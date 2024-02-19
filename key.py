@@ -11,7 +11,7 @@ if __name__ == '__main__':
     rsaModel = RsaModel()
     publicKeyPath = global_vars.root_path + '/public_key.pem'
     publicKey = rsaModel.publicKey(publicKeyPath)
-    message = "self1=7=" + time.strftime("%Y-%m-%d",time.gmtime())
+    message = "self2=7=" + time.strftime("%Y-%m-%d",time.gmtime())
 
 
     data = rsaModel.encrytedData(message, publicKey)

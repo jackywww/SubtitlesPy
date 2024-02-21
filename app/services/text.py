@@ -10,7 +10,7 @@ import cv2
 import mmcv
 import global_vars
 import math
-import gc
+import difflib
 
 modelBaseDIR = global_vars.root_path + "/paddleocr/"
 PEM_DIR = global_vars.root_path + "/"
@@ -234,13 +234,18 @@ def consumer(videoPath, name, fps, stepCounts, subtitleResultQueue, callBackShow
                 data = [] 
 
             continue
-
-        if data["title"] == currentData["title"]:
+        seq = difflib.SequenceMatcher(None, data["title"], currentData["title"])
+        print(seq.ratio(), data["title"], currentData["title"])
+        # if data["title"] == currentData["title"]:
+        if seq.ratio() >= 0.8 :
             if data["end"] < currentData["end"]:
                 data["end"] = currentData["end"]
             else:
                 if data["start"] > currentData["start"]:
                     data["start"] = currentData["start"]
+
+            if len(data["title"]) < len(currentData["title"]):
+                 data["title"] = currentData["title"]
 
             if key + 1 == qlen:
                 fileData.append(data)

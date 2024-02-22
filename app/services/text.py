@@ -235,9 +235,9 @@ def consumer(videoPath, name, fps, stepCounts, subtitleResultQueue, callBackShow
 
             continue
         seq = difflib.SequenceMatcher(None, data["title"], currentData["title"])
-        print(seq.ratio(), data["title"], currentData["title"])
+
         # if data["title"] == currentData["title"]:
-        if seq.ratio() >= 0.6 :
+        if seq.ratio() >= 0.55 :
             if data["end"] < currentData["end"]:
                 data["end"] = currentData["end"]
             else:

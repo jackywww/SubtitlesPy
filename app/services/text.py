@@ -78,7 +78,7 @@ def binarySearch(left, right, searchValue, clip, ocr):
         
 
 def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, cpuNum, speed, widthVideo, progressBarQueue, subtitleResultQueue, processNum):
-        try:
+        # try:
             ocr = Ocr(baseDir=modelBaseDIR,useGpu=useGpu,totalProcessNum=cpuNum)
             resultData = []
             
@@ -97,16 +97,19 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
             startIndex = start
 
             while start < end:
+                try:
+                    frame = video[start]
+                    subFrame = frame[int(y1*scaleValue):int(y2*scaleValue),0:int(widthVideo)]
+                    img = cv2.cvtColor(subFrame,cv2.COLOR_BGR2RGBA)
+                    h, w, _ = img.shape
 
-                frame = video[start]
-                subFrame = frame[int(y1*scaleValue):int(y2*scaleValue),0:int(widthVideo)]
-                img = cv2.cvtColor(subFrame,cv2.COLOR_BGR2RGBA)
-                h, w, _ = img.shape
-
-                ocrImg = cv2.resize(img, (int(w/float(speed)),int(h/float(speed))),interpolation=cv2.INTER_NEAREST)
-                
-                clip.append(ocrImg)
-                start += 1
+                    ocrImg = cv2.resize(img, (int(w/float(speed)),int(h/float(speed))),interpolation=cv2.INTER_NEAREST)
+                    
+                    clip.append(ocrImg)
+                    start += 1
+                except Exception as errorInfo:
+                    start += 1
+                    continue
             
             lock.release()
             left = 0
@@ -140,9 +143,9 @@ def getSubText(videoPath, stepCounts, index, lock, y1, y2, scaleValue, useGpu, c
             subtitleResultQueue.put(shareData)
             processNum.get()
 
-        except Exception as errorInfo:
-            processNum.get()
-            print(errorInfo)
+        # except Exception as errorInfo:
+        #     processNum.get()
+        #     print(errorInfo)
 
 def getText(videoPath, y1, y2, scaleValue, cpuNum, useGpu, speed, widthVideo, callBack, callBackShowSuccessInfo, progressBarQueue, name, toActivateCodeWindow):  
 
